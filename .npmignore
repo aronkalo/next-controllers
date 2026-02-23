@@ -1,0 +1,11 @@
+src
+examples
+tsconfig.json
+tsup.config.ts
+.git
+.github
+node_modules
+*.log
+.DS_Store
+.env*
+!.env.example
