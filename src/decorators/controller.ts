@@ -16,10 +16,8 @@ import type { Constructor } from '../types/context'
  */
 export function Controller(basePath: string) {
   return function <T extends Constructor>(target: T) {
-    registry.setControllerMetadata(target, {
-      basePath,
-      routes: [],
-    })
+    const existing = registry.ensureControllerMetadata(target)
+    existing.basePath = basePath
     return target
   }
 }
@@ -36,13 +34,11 @@ export function Controller(basePath: string) {
  */
 export function UseGuard(...guards: (Guard | Constructor<Guard>)[]) {
   return function <T extends Constructor>(target: T) {
-    const metadata = registry.getControllerMetadata(target)
-    if (metadata) {
-      const resolvedGuards = guards.map((guard) =>
-        typeof guard === 'function' ? globalContainer.get(guard as Constructor<Guard>) : guard
-      )
-      metadata.guards = [...(metadata.guards || []), ...resolvedGuards]
-    }
+    const metadata = registry.ensureControllerMetadata(target)
+    const resolvedGuards = guards.map((guard) =>
+      typeof guard === 'function' ? globalContainer.get(guard as Constructor<Guard>) : guard
+    )
+    metadata.guards = [...(metadata.guards || []), ...resolvedGuards]
     return target
   }
 }
@@ -59,16 +55,14 @@ export function UseGuard(...guards: (Guard | Constructor<Guard>)[]) {
  */
 export function Use(...middleware: (Middleware | Constructor<Middleware>)[]) {
   return function <T extends Constructor>(target: T) {
-    const metadata = registry.getControllerMetadata(target)
-    if (metadata) {
-      const resolvedMiddleware = middleware.map((mw) =>
-        typeof mw === 'function' ? globalContainer.get(mw as Constructor<Middleware>) : mw
-      )
-      metadata.middleware = [
-        ...(metadata.middleware || []),
-        ...resolvedMiddleware,
-      ]
-    }
+    const metadata = registry.ensureControllerMetadata(target)
+    const resolvedMiddleware = middleware.map((mw) =>
+      typeof mw === 'function' ? globalContainer.get(mw as Constructor<Middleware>) : mw
+    )
+    metadata.middleware = [
+      ...(metadata.middleware || []),
+      ...resolvedMiddleware,
+    ]
     return target
   }
 }

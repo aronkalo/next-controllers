@@ -26,6 +26,20 @@ class MetadataRegistry {
   }
 
   /**
+   * Get or create controller metadata.
+   * Used by class-level decorators (UseGuard, Use) that may be applied
+   * before @Controller due to bottom-up decorator evaluation.
+   */
+  ensureControllerMetadata(target: Constructor): ControllerMetadata {
+    let existing = this.getControllerMetadata(target)
+    if (!existing) {
+      existing = { basePath: '', routes: [] }
+      this.setControllerMetadata(target, existing)
+    }
+    return existing
+  }
+
+  /**
    * Set route metadata for a controller method
    */
   setRouteMetadata(
