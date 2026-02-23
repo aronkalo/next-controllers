@@ -6,7 +6,10 @@ class ServiceA {
 }
 
 class ServiceB {
-  constructor(public dep: string = 'default') {}
+  public dep: string
+  constructor(...args: unknown[]) {
+    this.dep = (args[0] as string) || 'default'
+  }
 }
 
 describe('Container', () => {

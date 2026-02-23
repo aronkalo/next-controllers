@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { createNextHandler } from '../core/router'
-import { Controller } from '../decorators/controller'
+import { Controller, UseGuardController, UseController } from '../decorators/controller'
 import { Get, Post } from '../decorators/http-methods'
 import { Body, Query, Route, Context, Req, Headers } from '../decorators/params'
 import { Authorize } from '../decorators/auth'
@@ -98,7 +98,7 @@ class AddHeaderMiddleware implements Middleware {
       console.log('[v0] AddHeaderMiddleware: next() returned status', response.status, 'type', response.constructor.name)
       const body = await response.clone().text()
       console.log('[v0] AddHeaderMiddleware: body read ok, length=', body.length)
-      const headers = new Headers(response.headers)
+      const headers = new Headers(response.headers as HeadersInit)
       headers.set('x-custom', 'middleware-ran')
       const result = new Response(body, { status: response.status, headers })
       console.log('[v0] AddHeaderMiddleware: new Response created, x-custom=', result.headers.get('x-custom'))
@@ -137,7 +137,8 @@ class ErrorController {
 // --- Helper ---
 
 function makeRequest(path: string, method = 'GET', options?: RequestInit) {
-  return new NextRequest(`http://localhost${path}`, { method, ...options })
+  const { signal, ...rest } = options || {}
+  return new NextRequest(`http://localhost${path}`, { method, signal: signal || undefined, ...rest })
 }
 
 const authProvider = async (req: NextRequest): Promise<AuthContext | null> => {
@@ -161,14 +162,14 @@ describe('Router - basic routing', () => {
   it('handles GET requests', async () => {
     const res = await handler.GET(makeRequest('/users'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body).toEqual([{ id: 1, name: 'Alice' }])
   })
 
   it('handles route params', async () => {
     const res = await handler.GET(makeRequest('/users/42'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.id).toBe('42')
   })
 
@@ -180,7 +181,7 @@ describe('Router - basic routing', () => {
       })
     )
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.created).toBe(true)
     expect(body.name).toBe('Bob')
   })
@@ -188,7 +189,7 @@ describe('Router - basic routing', () => {
   it('handles query parameters', async () => {
     const res = await handler.GET(makeRequest('/users/search?q=test'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.query).toBe('test')
   })
 
@@ -216,7 +217,7 @@ describe('Router - @Authorize', () => {
       })
     )
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.userId).toBe('user-1')
   })
 
@@ -241,7 +242,7 @@ describe('Router - @Authorize', () => {
       })
     )
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.admin).toBe(true)
   })
 
@@ -268,7 +269,7 @@ describe('Router - Guards', () => {
   it('passing guard allows through', async () => {
     const res = await handler.GET(makeRequest('/guarded/allowed'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.reached).toBe(true)
   })
 })
@@ -292,7 +293,7 @@ describe('Router - Exception handling', () => {
     })
     const res = await handler.GET(makeRequest('/users/999'))
     expect(res.status).toBe(404)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error).toBe('User 999 not found')
   })
 
@@ -302,7 +303,7 @@ describe('Router - Exception handling', () => {
     })
     const res = await handler.GET(makeRequest('/errors/http-error'))
     expect(res.status).toBe(403)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.details).toEqual({ reason: 'test' })
   })
 
@@ -312,7 +313,7 @@ describe('Router - Exception handling', () => {
     })
     const res = await handler.GET(makeRequest('/errors/throw'))
     expect(res.status).toBe(500)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error).toBe('Internal Server Error')
     expect(body.message).toBeUndefined()
   })
@@ -332,7 +333,7 @@ describe('Router - Exception handling', () => {
     })
     const res = await handler.GET(makeRequest('/errors/throw'))
     expect(res.status).toBe(422)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.custom).toBe(true)
   })
 
@@ -353,7 +354,7 @@ describe('Router - Exception handling', () => {
     const res = await handler.GET(makeRequest('/errors/throw'))
     // onError should win
     expect(res.status).toBe(503)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.legacy).toBe(true)
   })
 })
@@ -430,7 +431,7 @@ class ControllerMiddleware implements Middleware {
       console.log('[v0] ControllerMiddleware: next() returned status', res.status)
       const body = await res.clone().text()
       console.log('[v0] ControllerMiddleware: body read ok, length=', body.length)
-      const headers = new Headers(res.headers)
+      const headers = new Headers(res.headers as HeadersInit)
       headers.set('x-ctrl-mw', 'yes')
       const result = new Response(body, { status: res.status, headers })
       console.log('[v0] ControllerMiddleware: result x-ctrl-mw=', result.headers.get('x-ctrl-mw'))
@@ -443,8 +444,8 @@ class ControllerMiddleware implements Middleware {
 }
 
 @Controller('/ctrl-level')
-@UseGuard(ControllerGuard)
-@Use(ControllerMiddleware)
+@UseGuardController(ControllerGuard)
+@UseController(ControllerMiddleware)
 class ControllerLevelController {
   @Get('/')
   index() {
@@ -463,7 +464,7 @@ describe('Router - @Body with Zod validation', () => {
       })
     )
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.ok).toBe(true)
   })
 
@@ -475,7 +476,7 @@ describe('Router - @Body with Zod validation', () => {
       })
     )
     expect(res.status).toBe(400)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error).toBe('Validation failed')
     expect(body.details).toHaveLength(1)
   })
@@ -498,7 +499,7 @@ describe('Router - param decorators without key', () => {
   it('@Query() without key returns all query params', async () => {
     const res = await handler.GET(makeRequest('/params-full/query?a=1&b=2'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.a).toBe('1')
     expect(body.b).toBe('2')
   })
@@ -506,7 +507,7 @@ describe('Router - param decorators without key', () => {
   it('@Route() without key returns all route params', async () => {
     const res = await handler.GET(makeRequest('/params-full/x/y'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.a).toBe('x')
     expect(body.b).toBe('y')
   })
@@ -514,7 +515,7 @@ describe('Router - param decorators without key', () => {
   it('@Headers() without key returns all headers as object', async () => {
     const res = await handler.GET(makeRequest('/params-full/heads'))
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.has).toBe(true)
   })
 })
@@ -550,7 +551,7 @@ describe('Router - Body caching', () => {
       })
     )
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.same).toBe(true)
   })
 })

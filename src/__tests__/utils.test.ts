@@ -10,7 +10,7 @@ describe('createResponse', () => {
   it('returns 200 JSON response by default', async () => {
     const res = createResponse({ ok: true })
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.ok).toBe(true)
   })
 
@@ -29,20 +29,20 @@ describe('createErrorResponse', () => {
   it('returns 500 by default', async () => {
     const res = createErrorResponse('Something failed')
     expect(res.status).toBe(500)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error.message).toBe('Something failed')
   })
 
   it('supports custom status and code', async () => {
     const res = createErrorResponse('Not found', { status: 404, code: 'NOT_FOUND' })
     expect(res.status).toBe(404)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error.code).toBe('NOT_FOUND')
   })
 
   it('supports details', async () => {
     const res = createErrorResponse('Bad', { details: { field: 'email' } })
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error.details).toEqual({ field: 'email' })
   })
 })
@@ -54,7 +54,7 @@ describe('createValidationError', () => {
       name: ['Too short'],
     })
     expect(res.status).toBe(400)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error.code).toBe('VALIDATION_ERROR')
     expect(body.error.details.email).toHaveLength(2)
     expect(body.error.details.name).toHaveLength(1)

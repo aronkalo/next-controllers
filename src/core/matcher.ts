@@ -7,6 +7,8 @@ interface Key {
   delimiter: string
   optional: boolean
   repeat: boolean
+  partial: boolean
+  asterisk: boolean
   pattern: string
 }
 

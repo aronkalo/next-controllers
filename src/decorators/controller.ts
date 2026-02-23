@@ -23,16 +23,16 @@ export function Controller(basePath: string) {
 }
 
 /**
- * UseGuard decorator - apply guards at controller level
+ * UseGuardController decorator - apply guards at controller level
  * @param guards - Guard classes or instances to apply
  * @example
  * ```ts
  * @Controller('/admin')
- * @UseGuard(AdminGuard)
+ * @UseGuardController(AdminGuard)
  * export class AdminController {}
  * ```
  */
-export function UseGuard(...guards: (Guard | Constructor<Guard>)[]) {
+export function UseGuardController(...guards: (Guard | Constructor<Guard>)[]) {
   return function <T extends Constructor>(target: T) {
     const metadata = registry.ensureControllerMetadata(target)
     const resolvedGuards = guards.map((guard) =>
@@ -44,16 +44,16 @@ export function UseGuard(...guards: (Guard | Constructor<Guard>)[]) {
 }
 
 /**
- * Use decorator - apply middleware at controller level
+ * UseController decorator - apply middleware at controller level
  * @param middleware - Middleware classes or instances to apply
  * @example
  * ```ts
  * @Controller('/api')
- * @Use(LoggerMiddleware)
+ * @UseController(LoggerMiddleware)
  * export class ApiController {}
  * ```
  */
-export function Use(...middleware: (Middleware | Constructor<Middleware>)[]) {
+export function UseController(...middleware: (Middleware | Constructor<Middleware>)[]) {
   return function <T extends Constructor>(target: T) {
     const metadata = registry.ensureControllerMetadata(target)
     const resolvedMiddleware = middleware.map((mw) =>

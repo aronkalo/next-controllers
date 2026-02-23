@@ -28,7 +28,7 @@ describe('DefaultExceptionFilter', () => {
     const error = new HttpException(418, "I'm a teapot")
     const res = filter.catch(error, ctx)
     expect(res.status).toBe(418)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error).toBe("I'm a teapot")
   })
 
@@ -36,7 +36,7 @@ describe('DefaultExceptionFilter', () => {
     const error = new BadRequestException('Invalid input', { field: 'email' })
     const res = filter.catch(error, ctx)
     expect(res.status).toBe(400)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.details).toEqual({ field: 'email' })
   })
 
@@ -44,7 +44,7 @@ describe('DefaultExceptionFilter', () => {
     const error = new NotFoundException()
     const res = filter.catch(error, ctx)
     expect(res.status).toBe(404)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.details).toBeUndefined()
   })
 
@@ -56,7 +56,7 @@ describe('DefaultExceptionFilter', () => {
     })
     const res = filter.catch(error, ctx)
     expect(res.status).toBe(400)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error).toBe('Validation failed')
     expect(body.details).toHaveLength(1)
   })
@@ -71,7 +71,7 @@ describe('DefaultExceptionFilter', () => {
     const error = new Error('Database connection failed')
     const res = filter.catch(error, ctx)
     expect(res.status).toBe(500)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.error).toBe('Internal Server Error')
     expect(body.message).toBeUndefined()
   })
@@ -129,7 +129,7 @@ describe('Custom ExceptionFilter', () => {
 
     const res = await customFilter.catch(new Error('test'), makeContext())
     expect(res.status).toBe(422)
-    const body = await res.json()
+    const body = await res.json() as any
     expect(body.custom).toBe(true)
   })
 })
