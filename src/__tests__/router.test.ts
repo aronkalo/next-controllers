@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { createNextHandler } from '../core/router'
 import { Controller, UseGuardController, UseController } from '../decorators/controller'
 import { Get, Post } from '../decorators/http-methods'
-import { Body, Query, Route, Context, Req, Headers } from '../decorators/params'
+import { Body, Query, Route, Context, Req, Header } from '../decorators/params'
 import { Authorize } from '../decorators/auth'
 import { UseGuard, Use } from '../decorators/middleware'
 import { NotFoundException, ForbiddenException } from '../core/http-exception'
@@ -94,7 +94,7 @@ class AddHeaderMiddleware implements Middleware {
   async run(_ctx: RequestContext, next: () => Promise<Response>) {
     const response = await next()
     const body = await response.clone().text()
-    const headers = new Headers(response.headers as any)
+    const headers = new Headers(response.headers)
     headers.set('x-custom', 'middleware-ran')
     return new Response(body, { status: response.status, headers })
   }
@@ -400,7 +400,7 @@ class FullParamsController {
   }
 
   @Get('/heads')
-  allHeaders(@Headers() h: any) {
+  allHeaders(@Header() h: any) {
     return { has: !!h }
   }
 }
@@ -417,7 +417,7 @@ class ControllerMiddleware implements Middleware {
   async run(_ctx: RequestContext, next: () => Promise<Response>) {
     const res = await next()
     const body = await res.clone().text()
-    const headers = new Headers(res.headers as any)
+    const headers = new Headers(res.headers)
     headers.set('x-ctrl-mw', 'yes')
     return new Response(body, { status: res.status, headers })
   }

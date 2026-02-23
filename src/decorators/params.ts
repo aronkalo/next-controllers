@@ -119,7 +119,7 @@ export function Req() {
  * }
  * ```
  */
-export function Headers(key?: string) {
+export function Header(key?: string) {
   return function (target: any, propertyKey: string, parameterIndex: number) {
     addParamDecorator(target, propertyKey, parameterIndex, {
       type: 'headers',

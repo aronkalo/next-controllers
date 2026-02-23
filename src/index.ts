@@ -22,7 +22,7 @@ export {
 // Decorators
 export { Controller, UseGuardController, UseController } from './decorators/controller'
 export { Get, Post, Put, Delete, Patch } from './decorators/http-methods'
-export { Body, Query, Route, Req, Headers, Context } from './decorators/params'
+export { Body, Query, Route, Req, Header, Context } from './decorators/params'
 export { Authorize } from './decorators/auth'
 export { UseGuard, Use } from './decorators/middleware'
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { registry } from '../core/registry'
 import { Controller } from '../decorators/controller'
 import { Get, Post, Put, Delete, Patch } from '../decorators/http-methods'
-import { Body, Query, Route, Req, Headers, Context } from '../decorators/params'
+import { Body, Query, Route, Req, Header, Context } from '../decorators/params'
 import { Authorize } from '../decorators/auth'
 import { UseGuard, Use } from '../decorators/middleware'
 import type { Guard, Middleware, RequestContext } from '../types/http'
@@ -104,7 +104,7 @@ describe('Parameter decorators', () => {
     withReq(@Req() req: any) {}
 
     @Get('/headers')
-    withHeaders(@Headers('content-type') ct: string) {}
+    withHeaders(@Header('content-type') ct: string) {}
 
     @Get('/ctx')
     withContext(@Context() ctx: any) {}
