@@ -1,4 +1,13 @@
-import { pathToRegexp, Key } from 'path-to-regexp'
+import pathToRegexp from 'path-to-regexp'
+
+interface Key {
+  name: string | number
+  prefix: string
+  delimiter: string
+  optional: boolean
+  repeat: boolean
+  pattern: string
+}
 import type { CompiledRoute } from '../types/route'
 
 /**
