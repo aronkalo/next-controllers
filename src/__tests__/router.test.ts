@@ -92,21 +92,11 @@ class GuardedController {
 
 class AddHeaderMiddleware implements Middleware {
   async run(_ctx: RequestContext, next: () => Promise<Response>) {
-    console.log('[v0] AddHeaderMiddleware: run called')
-    try {
-      const response = await next()
-      console.log('[v0] AddHeaderMiddleware: next() returned status', response.status, 'type', response.constructor.name)
-      const body = await response.clone().text()
-      console.log('[v0] AddHeaderMiddleware: body read ok, length=', body.length)
-      const headers = new Headers(response.headers as HeadersInit)
-      headers.set('x-custom', 'middleware-ran')
-      const result = new Response(body, { status: response.status, headers })
-      console.log('[v0] AddHeaderMiddleware: new Response created, x-custom=', result.headers.get('x-custom'))
-      return result
-    } catch (err) {
-      console.log('[v0] AddHeaderMiddleware: ERROR', err)
-      throw err
-    }
+    const response = await next()
+    const body = await response.clone().text()
+    const headers = new Headers(response.headers as HeadersInit)
+    headers.set('x-custom', 'middleware-ran')
+    return new Response(body, { status: response.status, headers })
   }
 }
 
@@ -425,21 +415,13 @@ class ControllerGuard implements Guard {
 
 class ControllerMiddleware implements Middleware {
   async run(_ctx: RequestContext, next: () => Promise<Response>) {
-    console.log('[v0] ControllerMiddleware: run called')
-    try {
-      const res = await next()
-      console.log('[v0] ControllerMiddleware: next() returned status', res.status)
-      const body = await res.clone().text()
-      console.log('[v0] ControllerMiddleware: body read ok, length=', body.length)
-      const headers = new Headers(res.headers as HeadersInit)
-      headers.set('x-ctrl-mw', 'yes')
-      const result = new Response(body, { status: res.status, headers })
-      console.log('[v0] ControllerMiddleware: result x-ctrl-mw=', result.headers.get('x-ctrl-mw'))
-      return result
-    } catch (err) {
-      console.log('[v0] ControllerMiddleware: ERROR', err)
-      throw err
-    }
+    const res = await next()
+    const body = await res.clone().text()
+    const headers = new Headers(res.headers as HeadersInit)
+    headers.set('x-ctrl-mw', 'yes')
+    return new Response(body, { status: res.status, headers })
+  }
+}
   }
 }
 
