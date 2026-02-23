@@ -1,0 +1,71 @@
+{
+  "name": "next-controllers",
+  "version": "1.0.0",
+  "description": "ASP.NET-style controllers and decorators for Next.js App Router",
+  "keywords": [
+    "nextjs",
+    "controllers",
+    "decorators",
+    "typescript",
+    "api",
+    "asp.net",
+    "mvc",
+    "app-router"
+  ],
+  "author": "Aron Kalo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aronkalo/next-controllers.git"
+  },
+  "bugs": {
+    "url": "https://github.com/aronkalo/next-controllers/issues"
+  },
+  "homepage": "https://github.com/aronkalo/next-controllers#readme",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "npm run build",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "next": ">=13.0.0"
+  },
+  "dependencies": {
+    "next-controllers": "^0.1.17",
+    "path-to-regexp": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "next": "^15.1.6",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "zod": "^3.22.4"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  },
+  "optionalDependencies": {
+    "zod": "^3.22.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
