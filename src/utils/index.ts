@@ -64,13 +64,6 @@ export function createValidationError(
 }
 
 /**
- * Check if a value is a constructor function
- */
-export function isConstructor(value: unknown): value is new (...args: any[]) => any {
-  return typeof value === 'function' && value.prototype && value.prototype.constructor === value
-}
-
-/**
  * Parse query string into object
  */
 export function parseQuery(url: string): Record<string, string | string[]> {

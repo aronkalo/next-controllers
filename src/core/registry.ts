@@ -50,6 +50,28 @@ class MetadataRegistry {
   }
 
   /**
+   * Get or create route metadata for a controller method.
+   * Used by decorators that may be applied before the HTTP method decorator
+   * to avoid order-dependent errors.
+   */
+  ensureRouteMetadata(
+    target: Constructor,
+    methodName: string
+  ): RouteMetadata {
+    let existing = this.getRouteMetadata(target, methodName)
+    if (!existing) {
+      // Create a placeholder entry; the HTTP method decorator will fill in path/method/handler
+      existing = {
+        path: '',
+        method: 'GET',
+        handler: methodName,
+      }
+      this.setRouteMetadata(target, methodName, existing)
+    }
+    return existing
+  }
+
+  /**
    * Get all route metadata for a controller
    */
   getAllRouteMetadata(target: Constructor): RouteMetadata[] {

@@ -31,13 +31,7 @@ export function Authorize(...roles: string[]) {
     descriptor: PropertyDescriptor
   ) {
     const constructor = target.constructor
-    const routeMetadata = registry.getRouteMetadata(constructor, propertyKey)
-
-    if (!routeMetadata) {
-      throw new Error(
-        `Route metadata not found for ${constructor.name}.${propertyKey}. Make sure to use an HTTP method decorator (@Get, @Post, etc.) before @Authorize.`
-      )
-    }
+    const routeMetadata = registry.ensureRouteMetadata(constructor, propertyKey)
 
     routeMetadata.roles = roles
 

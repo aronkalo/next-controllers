@@ -62,18 +62,41 @@ export function loadControllers(
 
   // Sort routes by specificity (more specific routes first)
   compiledRoutes.sort((a, b) => {
-    const aPath = a.pattern.source
-    const bPath = b.pattern.source
+    const aFullPath = normalizePath(
+      a.controllerMetadata.basePath,
+      a.metadata.path
+    )
+    const bFullPath = normalizePath(
+      b.controllerMetadata.basePath,
+      b.metadata.path
+    )
 
-    // Routes without params are more specific
-    const aHasParams = aPath.includes('(')
-    const bHasParams = bPath.includes('(')
+    const aSegments = aFullPath.split('/').filter(Boolean)
+    const bSegments = bFullPath.split('/').filter(Boolean)
 
-    if (aHasParams && !bHasParams) return 1
-    if (!aHasParams && bHasParams) return -1
+    // More segments = more specific
+    if (aSegments.length !== bSegments.length) {
+      return bSegments.length - aSegments.length
+    }
 
-    // Longer paths are more specific
-    return bPath.length - aPath.length
+    // Count static segments (non-parameter segments)
+    const aStatic = aSegments.filter((s) => !s.startsWith(':')).length
+    const bStatic = bSegments.filter((s) => !s.startsWith(':')).length
+
+    // More static segments = more specific
+    if (aStatic !== bStatic) {
+      return bStatic - aStatic
+    }
+
+    // Compare segment-by-segment: static before dynamic
+    for (let i = 0; i < aSegments.length; i++) {
+      const aIsDynamic = aSegments[i].startsWith(':')
+      const bIsDynamic = bSegments[i].startsWith(':')
+      if (aIsDynamic && !bIsDynamic) return 1
+      if (!aIsDynamic && bIsDynamic) return -1
+    }
+
+    return 0
   })
 
   return compiledRoutes

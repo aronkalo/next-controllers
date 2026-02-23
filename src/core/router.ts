@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { loadControllers } from './controller-loader'
 import { matchRoute } from './matcher'
 import type { NextControllersConfig } from '../types/context'
-import type { RequestContext, AuthContext } from '../types/http'
+import type { RequestContext } from '../types/http'
 import type { CompiledRoute } from '../types/route'
-import type { ParamDecorator } from '../types/route'
 
 /**
  * Create Next.js route handlers from controllers
@@ -42,7 +41,7 @@ export function createNextHandler(config: NextControllersConfig) {
         try {
           const authContext = await config.authProvider(request)
           if (authContext) {
-            context.auth = authContext as AuthContext
+            context.auth = authContext
           }
         } catch (error) {
           console.error('Auth provider error:', error)
@@ -132,7 +131,6 @@ export function createNextHandler(config: NextControllersConfig) {
       return NextResponse.json(
         {
           error: 'Internal Server Error',
-          message: error instanceof Error ? error.message : String(error),
         },
         { status: 500 }
       )
@@ -171,8 +169,12 @@ async function executeHandler(
     switch (decorator.type) {
       case 'body':
         try {
-          const text = await context.request.text()
-          value = text ? JSON.parse(text) : {}
+          // Use cached body to avoid consuming the stream twice
+          if (context._parsedBody === undefined) {
+            const text = await context.request.text()
+            context._parsedBody = text ? JSON.parse(text) : {}
+          }
+          value = context._parsedBody
           
           // Validate with Zod if validator is provided
           if (decorator.validator && typeof decorator.validator === 'object' && 'parse' in decorator.validator) {

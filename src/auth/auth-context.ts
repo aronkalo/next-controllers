@@ -3,17 +3,34 @@ import type { AuthContext } from '../types/http'
 
 /**
  * Default JWT auth provider
- * Extracts JWT from Authorization header or cookies
+ * Extracts JWT from Authorization header or cookies.
+ *
+ * IMPORTANT: You must provide a `verifyToken` function that performs
+ * cryptographic signature validation. Use a library like `jose` or
+ * `jsonwebtoken` for this purpose.
+ *
+ * @example
+ * ```ts
+ * import { jwtVerify } from 'jose'
+ *
+ * const authProvider = createJwtAuthProvider({
+ *   verifyToken: async (token) => {
+ *     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret))
+ *     return payload
+ *   },
+ * })
+ * ```
  */
-export async function createJwtAuthProvider(
-  secret: string,
+export function createJwtAuthProvider(
   options: {
+    verifyToken: (token: string) => Promise<Record<string, unknown>> | Record<string, unknown>
     headerName?: string
     cookieName?: string
-    extractUser?: (payload: any) => AuthContext | Promise<AuthContext>
-  } = {}
-): Promise<(request: NextRequest) => Promise<AuthContext | null>> {
+    extractUser?: (payload: Record<string, unknown>) => AuthContext | Promise<AuthContext>
+  }
+): (request: NextRequest) => Promise<AuthContext | null> {
   const {
+    verifyToken,
     headerName = 'authorization',
     cookieName = 'token',
     extractUser = defaultExtractUser,
@@ -38,8 +55,7 @@ export async function createJwtAuthProvider(
         return null
       }
 
-      // Decode JWT (basic implementation - use a proper library in production)
-      const payload = await verifyJwt(token, secret)
+      const payload = await verifyToken(token)
       return await extractUser(payload)
     } catch (error) {
       console.error('JWT auth error:', error)
@@ -103,33 +119,10 @@ export function createCustomAuthProvider(
 /**
  * Default user extractor from JWT payload
  */
-function defaultExtractUser(payload: any): AuthContext {
+function defaultExtractUser(payload: Record<string, unknown>): AuthContext {
   return {
-    userId: payload.sub || payload.userId || payload.id,
-    roles: payload.roles || [],
-    permissions: payload.permissions,
+    userId: String(payload.sub || payload.userId || payload.id || ''),
+    roles: Array.isArray(payload.roles) ? payload.roles : [],
+    permissions: Array.isArray(payload.permissions) ? payload.permissions : undefined,
   }
-}
-
-/**
- * Basic JWT verification (use a proper library like jose or jsonwebtoken in production)
- */
-async function verifyJwt(token: string, secret: string): Promise<any> {
-  // This is a simplified implementation
-  // In production, use a proper JWT library
-  const parts = token.split('.')
-  if (parts.length !== 3) {
-    throw new Error('Invalid JWT format')
-  }
-
-  const payload = JSON.parse(
-    Buffer.from(parts[1], 'base64url').toString('utf-8')
-  )
-
-  // Check expiration
-  if (payload.exp && Date.now() >= payload.exp * 1000) {
-    throw new Error('Token expired')
-  }
-
-  return payload
 }

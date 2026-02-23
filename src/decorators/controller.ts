@@ -1,4 +1,5 @@
 import { registry } from '../core/registry'
+import { globalContainer } from '../core/container'
 import type { Guard, Middleware } from '../types/http'
 import type { Constructor } from '../types/context'
 
@@ -37,10 +38,10 @@ export function UseGuard(...guards: (Guard | Constructor<Guard>)[]) {
   return function <T extends Constructor>(target: T) {
     const metadata = registry.getControllerMetadata(target)
     if (metadata) {
-      const instantiatedGuards = guards.map((guard) =>
-        typeof guard === 'function' ? new guard() : guard
+      const resolvedGuards = guards.map((guard) =>
+        typeof guard === 'function' ? globalContainer.get(guard as Constructor<Guard>) : guard
       )
-      metadata.guards = [...(metadata.guards || []), ...instantiatedGuards]
+      metadata.guards = [...(metadata.guards || []), ...resolvedGuards]
     }
     return target
   }
@@ -60,12 +61,12 @@ export function Use(...middleware: (Middleware | Constructor<Middleware>)[]) {
   return function <T extends Constructor>(target: T) {
     const metadata = registry.getControllerMetadata(target)
     if (metadata) {
-      const instantiatedMiddleware = middleware.map((mw) =>
-        typeof mw === 'function' ? new mw() : mw
+      const resolvedMiddleware = middleware.map((mw) =>
+        typeof mw === 'function' ? globalContainer.get(mw as Constructor<Middleware>) : mw
       )
       metadata.middleware = [
         ...(metadata.middleware || []),
-        ...instantiatedMiddleware,
+        ...resolvedMiddleware,
       ]
     }
     return target

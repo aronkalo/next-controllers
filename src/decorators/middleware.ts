@@ -1,4 +1,5 @@
 import { registry } from '../core/registry'
+import { globalContainer } from '../core/container'
 import type { Guard, Middleware } from '../types/http'
 import type { Constructor } from '../types/context'
 
@@ -21,19 +22,13 @@ export function UseGuard(...guards: (Guard | Constructor<Guard>)[]) {
     descriptor: PropertyDescriptor
   ) {
     const constructor = target.constructor
-    const routeMetadata = registry.getRouteMetadata(constructor, propertyKey)
+    const routeMetadata = registry.ensureRouteMetadata(constructor, propertyKey)
 
-    if (!routeMetadata) {
-      throw new Error(
-        `Route metadata not found for ${constructor.name}.${propertyKey}. Make sure to use an HTTP method decorator (@Get, @Post, etc.) before @UseGuard.`
-      )
-    }
-
-    const instantiatedGuards = guards.map((guard) =>
-      typeof guard === 'function' ? new guard() : guard
+    const resolvedGuards = guards.map((guard) =>
+      typeof guard === 'function' ? globalContainer.get(guard as Constructor<Guard>) : guard
     )
 
-    routeMetadata.guards = [...(routeMetadata.guards || []), ...instantiatedGuards]
+    routeMetadata.guards = [...(routeMetadata.guards || []), ...resolvedGuards]
 
     return descriptor
   }
@@ -58,21 +53,15 @@ export function Use(...middleware: (Middleware | Constructor<Middleware>)[]) {
     descriptor: PropertyDescriptor
   ) {
     const constructor = target.constructor
-    const routeMetadata = registry.getRouteMetadata(constructor, propertyKey)
+    const routeMetadata = registry.ensureRouteMetadata(constructor, propertyKey)
 
-    if (!routeMetadata) {
-      throw new Error(
-        `Route metadata not found for ${constructor.name}.${propertyKey}. Make sure to use an HTTP method decorator (@Get, @Post, etc.) before @Use.`
-      )
-    }
-
-    const instantiatedMiddleware = middleware.map((mw) =>
-      typeof mw === 'function' ? new mw() : mw
+    const resolvedMiddleware = middleware.map((mw) =>
+      typeof mw === 'function' ? globalContainer.get(mw as Constructor<Middleware>) : mw
     )
 
     routeMetadata.middleware = [
       ...(routeMetadata.middleware || []),
-      ...instantiatedMiddleware,
+      ...resolvedMiddleware,
     ]
 
     return descriptor

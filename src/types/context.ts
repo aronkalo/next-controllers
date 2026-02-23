@@ -1,8 +1,11 @@
+import type { NextRequest } from 'next/server'
+import type { AuthProvider } from './http'
+
 export interface NextControllersConfig {
   controllers: (new (...args: unknown[]) => unknown)[]
-  authProvider?: (request: Request) => Promise<unknown> | unknown
+  authProvider?: AuthProvider
   prefix?: string
-  onError?: (error: Error, request: Request) => Response | Promise<Response>
+  onError?: (error: Error, request: NextRequest) => Response | Promise<Response>
 }
 
 export type Constructor<T = unknown> = new (...args: unknown[]) => T

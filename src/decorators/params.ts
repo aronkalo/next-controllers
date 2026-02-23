@@ -11,13 +11,7 @@ function addParamDecorator(
   decorator: Omit<ParamDecorator, 'index'>
 ) {
   const constructor = target.constructor
-  const routeMetadata = registry.getRouteMetadata(constructor, propertyKey)
-
-  if (!routeMetadata) {
-    throw new Error(
-      `Route metadata not found for ${constructor.name}.${propertyKey}. Make sure to use an HTTP method decorator (@Get, @Post, etc.) before parameter decorators.`
-    )
-  }
+  const routeMetadata = registry.ensureRouteMetadata(constructor, propertyKey)
 
   if (!routeMetadata.paramDecorators) {
     routeMetadata.paramDecorators = []

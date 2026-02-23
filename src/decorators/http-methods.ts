@@ -12,12 +12,12 @@ function createMethodDecorator(method: HttpMethod) {
       descriptor: PropertyDescriptor
     ) {
       const constructor = target.constructor
+      const existing = registry.ensureRouteMetadata(constructor, propertyKey)
 
-      registry.setRouteMetadata(constructor, propertyKey, {
-        path,
-        method,
-        handler: propertyKey,
-      })
+      // Merge into existing metadata (may have been pre-populated by other decorators)
+      existing.path = path
+      existing.method = method
+      existing.handler = propertyKey
 
       return descriptor
     }

@@ -17,6 +17,8 @@ export interface RequestContext {
   request: NextRequest
   params: RouteParams
   auth?: AuthContext
+  /** Cached parsed body to avoid consuming the stream twice */
+  _parsedBody?: unknown
   [key: string]: unknown
 }
 
