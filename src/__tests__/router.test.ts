@@ -94,7 +94,7 @@ class AddHeaderMiddleware implements Middleware {
   async run(_ctx: RequestContext, next: () => Promise<Response>) {
     const response = await next()
     const body = await response.clone().text()
-    const headers = new Headers(response.headers as HeadersInit)
+    const headers = new Headers(response.headers as any)
     headers.set('x-custom', 'middleware-ran')
     return new Response(body, { status: response.status, headers })
   }
@@ -417,7 +417,7 @@ class ControllerMiddleware implements Middleware {
   async run(_ctx: RequestContext, next: () => Promise<Response>) {
     const res = await next()
     const body = await res.clone().text()
-    const headers = new Headers(res.headers as HeadersInit)
+    const headers = new Headers(res.headers as any)
     headers.set('x-ctrl-mw', 'yes')
     return new Response(body, { status: res.status, headers })
   }
