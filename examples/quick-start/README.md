@@ -24,8 +24,7 @@ Update `tsconfig.json`:
 ```json
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true
     // ... other options
   }
 }

@@ -71,8 +71,7 @@ Update your `tsconfig.json`:
 ```json
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "experimentalDecorators": true
   }
 }
 ```
@@ -271,17 +270,26 @@ getContext(@Context() ctx: RequestContext) {
 
 ### JWT Authentication
 
+Provide your own token verification function (e.g. using `jose`):
+
 ```typescript
 import { createJwtAuthProvider } from 'next-controllers'
+import { jwtVerify } from 'jose'
+
+const secret = new TextEncoder().encode(process.env.JWT_SECRET!)
 
 export const { GET, POST, PUT, DELETE } = createNextHandler({
   controllers: [UserController],
-  authProvider: createJwtAuthProvider(process.env.JWT_SECRET!, {
+  authProvider: createJwtAuthProvider({
+    verifyToken: async (token) => {
+      const { payload } = await jwtVerify(token, secret)
+      return payload as Record<string, unknown>
+    },
     cookieName: 'token',
     extractUser: (payload) => ({
-      userId: payload.sub,
-      roles: payload.roles || [],
-      permissions: payload.permissions
+      userId: String(payload.sub),
+      roles: Array.isArray(payload.roles) ? payload.roles : [],
+      permissions: Array.isArray(payload.permissions) ? payload.permissions : undefined
     })
   })
 })
@@ -333,11 +341,11 @@ export const { GET, POST } = createNextHandler({
 
 ### Basic Authorization
 
-Require authentication:
+Require authentication (returns 401 if not authenticated):
 
 ```typescript
 @Get('/profile')
-@Authorize()
+@Authorize()  // Enforces authentication - no roles required
 getProfile(@Context() ctx: RequestContext) {
   return Response.json({ user: ctx.auth })
 }
@@ -510,19 +518,103 @@ export const { GET, POST } = createNextHandler({
 })
 ```
 
-### Error Handling
+### Exception Handling
 
-Custom error handler:
+The library provides a built-in exception system for clean, structured error responses.
+
+#### HttpException
+
+Throw typed exceptions from your controllers instead of manually building error responses:
+
+```typescript
+import {
+  HttpException,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  ConflictException,
+} from 'next-controllers'
+
+@Get('/users/:id')
+async getUser(@Route('id') id: string) {
+  const user = await this.userService.findById(id)
+  if (!user) {
+    throw new NotFoundException('User not found')
+  }
+  return Response.json(user)
+}
+
+@Post('/users')
+async createUser(@Body(CreateUserSchema) body: CreateUserDto) {
+  const existing = await this.userService.findByEmail(body.email)
+  if (existing) {
+    throw new ConflictException('Email already in use')
+  }
+  // ...
+}
+```
+
+Available exception classes:
+- `BadRequestException` (400)
+- `UnauthorizedException` (401)
+- `ForbiddenException` (403)
+- `NotFoundException` (404)
+- `ConflictException` (409)
+- `InternalServerErrorException` (500)
+- `HttpException` (custom status code)
+
+#### Custom Exception Filter
+
+Create your own exception filter for custom error formatting, logging, or monitoring:
+
+```typescript
+import { ExceptionFilter, HttpException } from 'next-controllers'
+import type { NextRequest } from 'next/server'
+
+class MyExceptionFilter implements ExceptionFilter {
+  async catch(error: Error, request: NextRequest): Promise<Response> {
+    // Log to your monitoring service
+    await logToSentry(error)
+
+    if (error instanceof HttpException) {
+      return Response.json(
+        { error: error.message, code: error.statusCode },
+        { status: error.statusCode }
+      )
+    }
+
+    return Response.json(
+      { error: 'Something went wrong' },
+      { status: 500 }
+    )
+  }
+}
+
+export const { GET, POST } = createNextHandler({
+  controllers: [UserController],
+  exceptionFilter: new MyExceptionFilter(),
+})
+```
+
+#### Default Exception Filter
+
+If you don't provide a custom `exceptionFilter`, the built-in `DefaultExceptionFilter` handles errors automatically:
+
+- `HttpException` - Returns the exception's status code and message as JSON
+- `ZodError` (validation failures) - Returns 400 with structured validation errors
+- Body parse errors - Returns 400 with "Invalid request body"
+- Unknown errors - Returns 500 with "Internal Server Error" (no internal details leaked)
+
+#### Legacy `onError` (deprecated)
+
+The `onError` callback is still supported for backwards compatibility but `exceptionFilter` is the preferred approach. If both are provided, `onError` takes priority:
 
 ```typescript
 export const { GET, POST } = createNextHandler({
   controllers: [UserController],
+  // @deprecated - use exceptionFilter instead
   onError: (error, request) => {
     console.error('API Error:', error)
-    
-    // Log to monitoring service
-    logToSentry(error)
-    
     return Response.json(
       { error: 'Internal Server Error' },
       { status: 500 }
@@ -611,30 +703,26 @@ class OwnerGuard implements Guard {
 }
 ```
 
-### 4. Handle Errors Gracefully
+### 4. Handle Errors with HttpException
+
+Throw typed exceptions instead of manually building error responses:
 
 ```typescript
+import { NotFoundException } from 'next-controllers'
+
 @Get('/users/:id')
 async getUser(@Route('id') id: string) {
-  try {
-    const user = await this.userService.findById(id)
-    
-    if (!user) {
-      return Response.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
-    
-    return Response.json(user)
-  } catch (error) {
-    return Response.json(
-      { error: 'Failed to fetch user' },
-      { status: 500 }
-    )
+  const user = await this.userService.findById(id)
+
+  if (!user) {
+    throw new NotFoundException('User not found')
   }
+
+  return Response.json(user)
 }
 ```
+
+The `DefaultExceptionFilter` (or your custom filter) converts these into proper JSON responses automatically.
 
 ## Performance
 
