@@ -90,13 +90,18 @@ class GuardedController {
 
 // --- Test middleware ---
 
-class AddHeaderMiddleware implements Middleware {
-  async run(ctx: RequestContext, next: () => Promise<Response>) {
-    const response = await next()
-    response.headers.set('x-custom', 'middleware-ran')
-    return response
+  class AddHeaderMiddleware implements Middleware {
+    async run(ctx: RequestContext, next: () => Promise<Response>) {
+      const response = await next()
+      const headers = new Headers(response.headers)
+      headers.set('x-custom', 'middleware-ran')
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      })
+    }
   }
-}
 
 @Controller('/mw')
 class MiddlewareController {
@@ -413,8 +418,13 @@ class ControllerGuard implements Guard {
 class ControllerMiddleware implements Middleware {
   async run(_ctx: RequestContext, next: () => Promise<Response>) {
     const res = await next()
-    res.headers.set('x-ctrl-mw', 'yes')
-    return res
+    const headers = new Headers(res.headers)
+    headers.set('x-ctrl-mw', 'yes')
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers,
+    })
   }
 }
 
