@@ -7,6 +7,17 @@
 export { createNextHandler } from './core/router'
 export { Container, globalContainer } from './core/container'
 export { registry } from './core/registry'
+export { DefaultExceptionFilter } from './core/exception-filter'
+export type { ExceptionFilter } from './core/exception-filter'
+export {
+  HttpException,
+  BadRequestException,
+  UnauthorizedException,
+  ForbiddenException,
+  NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
+} from './core/http-exception'
 
 // Decorators
 export { Controller, UseGuard as ControllerUseGuard, Use as ControllerUse } from './decorators/controller'

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadControllers } from './controller-loader'
 import { matchRoute } from './matcher'
+import { DefaultExceptionFilter } from './exception-filter'
+import { UnauthorizedException, ForbiddenException } from './http-exception'
 import type { NextControllersConfig } from '../types/context'
 import type { RequestContext } from '../types/http'
 import type { CompiledRoute } from '../types/route'
+
+const defaultFilter = new DefaultExceptionFilter()
 
 /**
  * Create Next.js route handlers from controllers
@@ -16,6 +20,12 @@ export function createNextHandler(config: NextControllersConfig) {
   async function handleRequest(request: NextRequest): Promise<Response> {
     const pathname = new URL(request.url).pathname
     const method = request.method
+
+    // Minimal context for exception filter (before route match)
+    const baseContext: RequestContext = {
+      request,
+      params: {},
+    }
 
     try {
       // Match the route
@@ -53,10 +63,7 @@ export function createNextHandler(config: NextControllersConfig) {
         for (const guard of route.controllerMetadata.guards) {
           const canActivate = await guard.canActivate(context)
           if (!canActivate) {
-            return NextResponse.json(
-              { error: 'Forbidden', message: 'Access denied by guard' },
-              { status: 403 }
-            )
+            throw new ForbiddenException('Access denied by guard')
           }
         }
       }
@@ -66,36 +73,27 @@ export function createNextHandler(config: NextControllersConfig) {
         for (const guard of route.metadata.guards) {
           const canActivate = await guard.canActivate(context)
           if (!canActivate) {
-            return NextResponse.json(
-              { error: 'Forbidden', message: 'Access denied by guard' },
-              { status: 403 }
-            )
+            throw new ForbiddenException('Access denied by guard')
           }
         }
       }
 
       // Check authorization (roles)
-      if (route.metadata.roles && route.metadata.roles.length > 0) {
+      // When roles is defined (even empty), authentication is required.
+      // When roles is non-empty, role membership is also checked.
+      if (route.metadata.roles !== undefined) {
         if (!context.auth) {
-          return NextResponse.json(
-            { error: 'Unauthorized', message: 'Authentication required' },
-            { status: 401 }
-          )
+          throw new UnauthorizedException('Authentication required')
         }
 
-        const hasRole = route.metadata.roles.some((role) =>
-          context.auth!.roles.includes(role)
-        )
-
-        if (!hasRole) {
-          return NextResponse.json(
-            {
-              error: 'Forbidden',
-              message: 'Insufficient permissions',
-              requiredRoles: route.metadata.roles,
-            },
-            { status: 403 }
+        if (route.metadata.roles.length > 0) {
+          const hasRole = route.metadata.roles.some((role) =>
+            context.auth!.roles.includes(role)
           )
+
+          if (!hasRole) {
+            throw new ForbiddenException('Insufficient permissions')
+          }
         }
       }
 
@@ -119,21 +117,18 @@ export function createNextHandler(config: NextControllersConfig) {
 
       return await executeMiddleware()
     } catch (error) {
-      console.error('Request handler error:', error)
+      const err = error instanceof Error ? error : new Error(String(error))
 
+      // Priority chain: onError (legacy) > exceptionFilter (custom) > DefaultExceptionFilter
       if (config.onError) {
-        return await config.onError(
-          error instanceof Error ? error : new Error(String(error)),
-          request
-        )
+        return await config.onError(err, request)
       }
 
-      return NextResponse.json(
-        {
-          error: 'Internal Server Error',
-        },
-        { status: 500 }
-      )
+      if (config.exceptionFilter) {
+        return await config.exceptionFilter.catch(err, baseContext)
+      }
+
+      return defaultFilter.catch(err, baseContext)
     }
   }
 
@@ -168,20 +163,16 @@ async function executeHandler(
 
     switch (decorator.type) {
       case 'body':
-        try {
-          // Use cached body to avoid consuming the stream twice
-          if (context._parsedBody === undefined) {
-            const text = await context.request.text()
-            context._parsedBody = text ? JSON.parse(text) : {}
-          }
-          value = context._parsedBody
-          
-          // Validate with Zod if validator is provided
-          if (decorator.validator && typeof decorator.validator === 'object' && 'parse' in decorator.validator) {
-            value = (decorator.validator as any).parse(value)
-          }
-        } catch (error) {
-          throw new Error(`Invalid request body: ${error}`)
+        // Use cached body to avoid consuming the stream twice
+        if (context._parsedBody === undefined) {
+          const text = await context.request.text()
+          context._parsedBody = text ? JSON.parse(text) : {}
+        }
+        value = context._parsedBody
+
+        // Validate with Zod if validator is provided
+        if (decorator.validator && typeof decorator.validator === 'object' && 'parse' in decorator.validator) {
+          value = (decorator.validator as any).parse(value)
         }
         break
 
