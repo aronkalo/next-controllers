@@ -1,4 +1,5 @@
 import pathToRegexp from 'path-to-regexp'
+import type { CompiledRoute } from '../types/route'
 
 interface Key {
   name: string | number
@@ -8,7 +9,6 @@ interface Key {
   repeat: boolean
   pattern: string
 }
-import type { CompiledRoute } from '../types/route'
 
 /**
  * Compile a route path into a regular expression
