@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { loadControllers } from '../core/controller-loader'
 import { Controller } from '../decorators/controller'
 import { Get } from '../decorators/http-methods'

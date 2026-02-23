@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import { createNextHandler } from '../core/router'
 import { Controller } from '../decorators/controller'
 import { Get, Post } from '../decorators/http-methods'
-import { Body, Query, Route, Context } from '../decorators/params'
+import { Body, Query, Route, Context, Req, Headers } from '../decorators/params'
 import { Authorize } from '../decorators/auth'
 import { UseGuard, Use } from '../decorators/middleware'
 import { NotFoundException, ForbiddenException } from '../core/http-exception'
@@ -343,6 +343,165 @@ describe('Router - Exception handling', () => {
     expect(res.status).toBe(503)
     const body = await res.json()
     expect(body.legacy).toBe(true)
+  })
+})
+
+// --- Zod body validation ---
+
+const FakeZodSchema = {
+  parse(value: unknown) {
+    const obj = value as Record<string, unknown>
+    if (!obj.name || typeof obj.name !== 'string') {
+      const err = new Error('Validation') as any
+      err.name = 'ZodError'
+      err.issues = [{ path: ['name'], message: 'Required' }]
+      throw err
+    }
+    return obj
+  },
+}
+
+@Controller('/validated')
+class ValidatedController {
+  @Post('/')
+  create(@Body(FakeZodSchema) body: any) {
+    return { ok: true, body }
+  }
+}
+
+// --- Raw Response ---
+
+@Controller('/raw')
+class RawResponseController {
+  @Get('/')
+  rawResponse() {
+    return new Response('plain text', {
+      status: 201,
+      headers: { 'content-type': 'text/plain' },
+    })
+  }
+}
+
+// --- Query/Route/Headers without key ---
+
+@Controller('/params-full')
+class FullParamsController {
+  @Get('/query')
+  allQuery(@Query() q: any) {
+    return q
+  }
+
+  @Get('/:a/:b')
+  allRoute(@Route() params: any) {
+    return params
+  }
+
+  @Get('/heads')
+  allHeaders(@Headers() h: any) {
+    return { has: !!h }
+  }
+}
+
+// --- Controller-level guards & middleware ---
+
+class ControllerGuard implements Guard {
+  canActivate() {
+    return true
+  }
+}
+
+class ControllerMiddleware implements Middleware {
+  async run(_ctx: RequestContext, next: () => Promise<Response>) {
+    const res = await next()
+    res.headers.set('x-ctrl-mw', 'yes')
+    return res
+  }
+}
+
+@Controller('/ctrl-level')
+@UseGuard(ControllerGuard)
+@Use(ControllerMiddleware)
+class ControllerLevelController {
+  @Get('/')
+  index() {
+    return { ctrl: true }
+  }
+}
+
+describe('Router - @Body with Zod validation', () => {
+  const handler = createNextHandler({ controllers: [ValidatedController] })
+
+  it('passes when body is valid', async () => {
+    const res = await handler.POST(
+      makeRequest('/validated', 'POST', {
+        body: JSON.stringify({ name: 'Alice' }),
+        headers: { 'content-type': 'application/json' },
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+  })
+
+  it('returns 400 when Zod validation fails', async () => {
+    const res = await handler.POST(
+      makeRequest('/validated', 'POST', {
+        body: JSON.stringify({}),
+        headers: { 'content-type': 'application/json' },
+      })
+    )
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toBe('Validation failed')
+    expect(body.details).toHaveLength(1)
+  })
+})
+
+describe('Router - raw Response passthrough', () => {
+  const handler = createNextHandler({ controllers: [RawResponseController] })
+
+  it('returns raw Response without wrapping in JSON', async () => {
+    const res = await handler.GET(makeRequest('/raw'))
+    expect(res.status).toBe(201)
+    const text = await res.text()
+    expect(text).toBe('plain text')
+  })
+})
+
+describe('Router - param decorators without key', () => {
+  const handler = createNextHandler({ controllers: [FullParamsController] })
+
+  it('@Query() without key returns all query params', async () => {
+    const res = await handler.GET(makeRequest('/params-full/query?a=1&b=2'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.a).toBe('1')
+    expect(body.b).toBe('2')
+  })
+
+  it('@Route() without key returns all route params', async () => {
+    const res = await handler.GET(makeRequest('/params-full/x/y'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.a).toBe('x')
+    expect(body.b).toBe('y')
+  })
+
+  it('@Headers() without key returns all headers as object', async () => {
+    const res = await handler.GET(makeRequest('/params-full/heads'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.has).toBe(true)
+  })
+})
+
+describe('Router - controller-level guards & middleware', () => {
+  const handler = createNextHandler({ controllers: [ControllerLevelController] })
+
+  it('controller-level guard and middleware execute', async () => {
+    const res = await handler.GET(makeRequest('/ctrl-level'))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('x-ctrl-mw')).toBe('yes')
   })
 })
 

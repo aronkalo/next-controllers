@@ -55,6 +55,36 @@ describe('createJwtAuthProvider', () => {
     expect(result!.userId).toBe('custom-user-1')
   })
 
+  it('extracts token from cookie when no header present', async () => {
+    const cookieProvider = createJwtAuthProvider({
+      verifyToken: mockVerify,
+      cookieName: 'auth-token',
+    })
+    const request = new NextRequest('http://localhost/api', {
+      headers: { cookie: 'auth-token=valid-token' },
+    })
+    const result = await cookieProvider(request)
+    expect(result).not.toBeNull()
+    expect(result!.userId).toBe('user-1')
+  })
+
+  it('prefers Authorization header over cookie', async () => {
+    const cookieProvider = createJwtAuthProvider({
+      verifyToken: async (token) => {
+        return { sub: `from-${token}`, roles: [] }
+      },
+      cookieName: 'auth-token',
+    })
+    const request = new NextRequest('http://localhost/api', {
+      headers: {
+        authorization: 'Bearer header-token',
+        cookie: 'auth-token=cookie-token',
+      },
+    })
+    const result = await cookieProvider(request)
+    expect(result!.userId).toBe('from-header-token')
+  })
+
   it('supports custom header name', async () => {
     const customProvider = createJwtAuthProvider({
       verifyToken: mockVerify,
