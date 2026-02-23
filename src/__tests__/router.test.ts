@@ -422,8 +422,6 @@ class ControllerMiddleware implements Middleware {
     return new Response(body, { status: res.status, headers })
   }
 }
-  }
-}
 
 @Controller('/ctrl-level')
 @UseGuardController(ControllerGuard)
