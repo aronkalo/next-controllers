@@ -1,5 +1,5 @@
 {
-  "name": "next-controllers",
+  "name": "next-api-controllers",
   "version": "1.0.0",
   "description": "ASP.NET-style controllers and decorators for Next.js App Router",
   "keywords": [
