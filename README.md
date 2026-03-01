@@ -772,7 +772,7 @@ See the [examples](./examples) directory for complete examples:
 
 ## Contributing
 
-Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) first.
+Contributions are welcome! Please feel free to open issues or submit pull requests.
 
 ## License
 

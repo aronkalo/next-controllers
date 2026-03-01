@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2026-02-23
+## [1.1.0] - 2026-03-01
+
+### Added
+
+- **Form-urlencoded support**: `@Body()` decorator now supports `application/x-www-form-urlencoded` in addition to JSON
+- **Content-Type detection**: Request body parser automatically detects and handles both `application/json` and `application/x-www-form-urlencoded` content types
+- **Unified validation**: Zod validation works identically for both JSON and form-urlencoded request bodies
+
+## [1.0.0] - 2026-02-23
 
 ### Added
 
@@ -14,15 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`exceptionFilter` config option**: Pass a custom `ExceptionFilter` to `createNextHandler` for global error handling (replaces `onError`)
 - **CJS output**: Package now ships both ESM and CJS formats for broader compatibility
 - **Vitest test suite**: Comprehensive tests covering matcher, registry, container, decorators, controller-loader, router, exception-filter, and auth
+- **Core decorators**: `@Controller`, `@Get`, `@Post`, `@Put`, `@Delete`, `@Patch`, `@Body`, `@Query`, `@Route`, `@Req`, `@Headers`, `@Context`
+- **Authentication providers**: JWT, session-based, and custom authentication support
+- **Built-in guards**: `RoleGuard`, `PermissionGuard`, `AuthenticatedGuard`
+- **Middleware support**: Route-level and controller-level middleware
+- **Dependency injection**: Lightweight DI container for service injection
+- **Route compilation**: Optimized route matching engine with dynamic parameters
 
 ### Changed
 
 - **`@Authorize()` now enforces authentication**: Bare `@Authorize()` without roles returns 401 if the user is not authenticated. Previously it was a no-op without roles.
-- **Decorator ordering is now flexible**: Decorators like `@Authorize()`, `@UseGuard()`, `@Use()`, and parameter decorators can be placed in any order relative to the HTTP method decorator (`@Get`, `@Post`, etc.)
+- **Decorator ordering is now flexible**: Decorators like `@Authorize()`, `@UseGuard()`, `@Use()`, and parameter decorators can be placed in any order relative to the HTTP method decorator
 - **Guards and middleware resolve through DI container**: `@UseGuard()` and `@Use()` now resolve class references via `globalContainer` instead of plain `new`
-- **Request body is cached**: The parsed body is stored on `RequestContext._parsedBody` to prevent stream consumption errors when multiple decorators access the body
-- **Route sorting uses segment-based algorithm**: Routes are now sorted by segment count and static-vs-dynamic segments instead of regex source length
-- **`createJwtAuthProvider` API changed**: Now accepts `{ verifyToken, ... }` options object instead of `(secret, options)`. Users must provide their own cryptographic token verification function (e.g. using `jose`)
+- **Request body is cached**: The parsed body is stored on `RequestContext._parsedBody` to prevent stream consumption errors
+- **Route sorting uses segment-based algorithm**: Routes are sorted by segment count and static-vs-dynamic segments instead of regex source length
+- **`createJwtAuthProvider` API changed**: Now accepts `{ verifyToken, ... }` options object instead of `(secret, options)`
 - **`onError` is deprecated**: Use `exceptionFilter` instead. `onError` is still supported for backwards compatibility
 - **500 responses no longer leak error details**: Internal error messages are not exposed to clients
 
