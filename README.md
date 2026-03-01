@@ -184,7 +184,7 @@ Extract data from requests using parameter decorators:
 
 #### `@Body(schema?)`
 
-Inject request body (optionally with Zod validation):
+Inject request body with automatic Content-Type detection (JSON or form-urlencoded), optionally with Zod validation:
 
 ```typescript
 import { z } from 'zod'
@@ -196,10 +196,17 @@ const CreateUserSchema = z.object({
 
 @Post('/users')
 createUser(@Body(CreateUserSchema) body: CreateUserDto) {
-  // body is automatically parsed and validated
+  // body is automatically parsed from JSON or form-urlencoded
+  // and validated against the schema
   return Response.json(body)
 }
 ```
+
+Supported content types:
+- `application/json` - JSON bodies
+- `application/x-www-form-urlencoded` - Form-encoded bodies
+
+Both are automatically detected based on the `Content-Type` header.
 
 #### `@Query(key?)`
 
@@ -245,7 +252,7 @@ Extract request headers:
 
 ```typescript
 @Get('/auth-info')
-getAuthInfo(@Headers('authorization') auth: string) {
+getAuthInfo(@Header('authorization') auth: string) {
   return Response.json({ auth })
 }
 ```
@@ -772,7 +779,7 @@ See the [examples](./examples) directory for complete examples:
 
 ## Contributing
 
-Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) first.
+Contributions are welcome! Please feel free to open issues or submit pull requests.
 
 ## License
 

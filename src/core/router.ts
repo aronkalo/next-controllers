@@ -3,6 +3,7 @@ import { loadControllers } from './controller-loader'
 import { matchRoute } from './matcher'
 import { DefaultExceptionFilter } from './exception-filter'
 import { UnauthorizedException, ForbiddenException } from './http-exception'
+import { parseBody } from '../utils/body-parser'
 import type { NextControllersConfig } from '../types/context'
 import type { RequestContext } from '../types/http'
 import type { CompiledRoute } from '../types/route'
@@ -166,7 +167,8 @@ async function executeHandler(
         // Use cached body to avoid consuming the stream twice
         if (context._parsedBody === undefined) {
           const text = await context.request.text()
-          context._parsedBody = text ? JSON.parse(text) : {}
+          const contentType = context.request.headers.get('content-type') || undefined
+          context._parsedBody = parseBody(text, contentType)
         }
         value = context._parsedBody
 
