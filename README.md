@@ -2,7 +2,7 @@
 
 ASP.NET-style controllers and decorators for Next.js App Router. Build type-safe, organized APIs with a familiar decorator-based approach instead of deeply nested file-based routing.
 
-[![npm version](https://badge.fury.io/js/next-controllers.svg)](https://www.npmjs.com/package/next-controllers)
+[![npm version](https://badge.fury.io/js/next-api-controllers.svg)](https://www.npmjs.com/package/next-api-controllers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Motivation
