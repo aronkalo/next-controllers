@@ -372,6 +372,21 @@ class ValidatedController {
   }
 }
 
+// --- Form URL Encoded ---
+
+@Controller('/form')
+class FormUrlController {
+  @Post('/')
+  createFromForm(@Body() body: any) {
+    return { ok: true, body }
+  }
+
+  @Post('/validated')
+  createFromFormWithValidation(@Body(FakeZodSchema) body: any) {
+    return { ok: true, body }
+  }
+}
+
 // --- Raw Response ---
 
 @Controller('/raw')
@@ -459,6 +474,87 @@ describe('Router - @Body with Zod validation', () => {
     const body = await res.json() as any
     expect(body.error).toBe('Validation failed')
     expect(body.details).toHaveLength(1)
+  })
+})
+
+describe('Router - @Body with form-urlencoded', () => {
+  const handler = createNextHandler({ controllers: [FormUrlController] })
+
+  it('parses simple form-urlencoded data', async () => {
+    const res = await handler.POST(
+      makeRequest('/form', 'POST', {
+        body: 'name=Alice&age=30',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.ok).toBe(true)
+    expect(body.body.name).toBe('Alice')
+    expect(body.body.age).toBe('30')
+  })
+
+  it('handles URL-encoded special characters', async () => {
+    const res = await handler.POST(
+      makeRequest('/form', 'POST', {
+        body: 'email=user%40example.com&message=Hello%20World',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.body.email).toBe('user@example.com')
+    expect(body.body.message).toBe('Hello World')
+  })
+
+  it('handles form-urlencoded with charset parameter', async () => {
+    const res = await handler.POST(
+      makeRequest('/form', 'POST', {
+        body: 'name=Bob',
+        headers: { 'content-type': 'application/x-www-form-urlencoded; charset=utf-8' },
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.body.name).toBe('Bob')
+  })
+
+  it('returns empty object for empty form body', async () => {
+    const res = await handler.POST(
+      makeRequest('/form', 'POST', {
+        body: '',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.ok).toBe(true)
+    expect(Object.keys(body.body).length).toBe(0)
+  })
+
+  it('passes form-urlencoded through Zod validation', async () => {
+    const res = await handler.POST(
+      makeRequest('/form/validated', 'POST', {
+        body: 'name=Charlie',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      })
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json() as any
+    expect(body.ok).toBe(true)
+    expect(body.body.name).toBe('Charlie')
+  })
+
+  it('returns 400 when form-urlencoded fails Zod validation', async () => {
+    const res = await handler.POST(
+      makeRequest('/form/validated', 'POST', {
+        body: '',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      })
+    )
+    expect(res.status).toBe(400)
+    const body = await res.json() as any
+    expect(body.error).toBe('Validation failed')
   })
 })
 
